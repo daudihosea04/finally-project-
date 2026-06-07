@@ -1,0 +1,106 @@
+import React, { useEffect, useRef } from 'react';
+import { useTheme } from '../../context/ThemeContext';
+
+const AnimatedDots = () => {
+  const canvasRef = useRef(null);
+  const { isDark } = useTheme();
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    
+    let particles = [];
+    let animationFrameId;
+    
+    class Particle {
+      constructor() {
+        this.x = Math.random() * canvas.width;
+        this.y = Math.random() * canvas.height;
+        this.size = Math.random() * 2 + 1;
+        this.speedX = (Math.random() - 0.5) * 0.3;
+        this.speedY = (Math.random() - 0.5) * 0.3;
+        this.opacity = Math.random() * 0.4 + 0.2;
+      }
+      
+      update() {
+        this.x += this.speedX;
+        this.y += this.speedY;
+        
+        // Wrap around screen
+        if (this.x < 0) this.x = canvas.width;
+        if (this.x > canvas.width) this.x = 0;
+        if (this.y < 0) this.y = canvas.height;
+        if (this.y > canvas.height) this.y = 0;
+      }
+      
+      draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        
+        const color = isDark ? `rgba(255, 215, 0, ${this.opacity})` : `rgba(218, 165, 32, ${this.opacity})`;
+        ctx.fillStyle = color;
+        ctx.fill();
+        
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = isDark ? 'rgba(255, 215, 0, 0.3)' : 'rgba(218, 165, 32, 0.2)';
+      }
+    }
+    
+    const init = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      
+      const particleCount = Math.min(150, Math.floor((canvas.width * canvas.height) / 10000));
+      particles = [];
+      
+      for (let i = 0; i < particleCount; i++) {
+        particles.push(new Particle());
+      }
+    };
+    
+    const animate = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      ctx.fillStyle = isDark ? 'rgba(10, 10, 10, 0.05)' : 'rgba(245, 245, 245, 0.05)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      particles.forEach(particle => {
+        particle.update();
+        particle.draw();
+      });
+      
+      animationFrameId = requestAnimationFrame(animate);
+    };
+    
+    const handleResize = () => {
+      init();
+    };
+    
+    init();
+    animate();
+    
+    window.addEventListener('resize', handleResize);
+    
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, [isDark]);
+  
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        pointerEvents: 'none',
+        zIndex: 0,
+      }}
+    />
+  );
+};
+
+export default AnimatedDots;

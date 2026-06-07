@@ -1,0 +1,5 @@
+[mysqld]
+innodb_large_prefix=ON
+innodb_file_format=Barracuda
+innodb_file_per_table=ON
+sql_mode=NO_ENGINE_SUBSTITUTION
