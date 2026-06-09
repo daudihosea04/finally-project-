@@ -1,754 +1,376 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '../../context/AuthContext';
+import { 
+  Users, BookOpen, MessageCircle, Bell, 
+  TrendingUp, Shield, Calendar, FileText,
+  Settings, Activity, BarChart3, Trash2,
+  Edit, Eye, Plus, Search, Filter, Download,
+  UserPlus, UserCheck, UserX, Clock, CheckCircle,
+  XCircle, AlertCircle, Mail, Phone, MapPin,
+  MoreVertical, RefreshCw, Printer, LogOut, HelpCircle,
+  X, ChevronRight, Award, Star, Target, Zap
+} from 'lucide-react';
+import StatsCard from '../../components/dashboard/StatsCard';
 
 const AdminDashboard = () => {
   const { colors, isDark } = useTheme();
-  const [activeSection, setActiveSection] = useState('dashboard');
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('overview');
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [showAddUserModal, setShowAddUserModal] = useState(false);
+  const [newUser, setNewUser] = useState({ name: '', email: '', role: 'student', department: '' });
+  const [notification, setNotification] = useState({ show: false, message: '', type: '' });
 
-  // Section titles and icons
-  const sectionTitles = {
-    'dashboard': 'Dashboard Overview',
-    'user-management': 'User Management Overview',
-    'manage-users': 'Manage Users',
-    'role-assignment': 'Role Assignment',
-    'user-activity': 'User Activity',
-    '2fa-enforcement': '2FA Enforcement',
-    'course-management': 'Course Management',
-    'departments': 'Departments',
-    'academic-calendar': 'Academic Calendar',
-    'announcements': 'Announcements',
-    'groups-rooms': 'Groups & Rooms',
-    'notifications': 'Notifications',
-    'database-backup': 'Database Backup',
-    'file-storage': 'File Storage',
-    'system-health': 'System Health',
-    'system-logs': 'System Logs',
-    'maintenance': 'Maintenance',
-    'compliance': 'Compliance',
-    'api-keys': 'API Keys',
-    'email-config': 'Email Config',
-    'sms-gateway': 'SMS Gateway',
-    'analytics': 'Analytics',
-    'reports': 'Reports',
-    'import-export': 'Import/Export',
+  // Helper functions
+  const showAlert = (message) => {
+    alert(message);
   };
 
-  const sectionIcons = {
-    'dashboard': '📊',
-    'user-management': '👥',
-    'manage-users': '📋',
-    'role-assignment': '🎭',
-    'user-activity': '📊',
-    '2fa-enforcement': '🔐',
-    'course-management': '📚',
-    'departments': '🏛️',
-    'academic-calendar': '📅',
-    'announcements': '📢',
-    'groups-rooms': '👥',
-    'notifications': '🔔',
-    'database-backup': '💾',
-    'file-storage': '📁',
-    'system-health': '🩺',
-    'system-logs': '📜',
-    'maintenance': '🔧',
-    'compliance': '⚖️',
-    'api-keys': '🔑',
-    'email-config': '📧',
-    'sms-gateway': '📱',
-    'analytics': '📈',
-    'reports': '📑',
-    'import-export': '🔄',
+  const showNotification = (message, type = 'success') => {
+    setNotification({ show: true, message, type });
+    setTimeout(() => setNotification({ show: false, message: '', type: '' }), 3000);
   };
 
-  // Sample data
-  const sampleUsers = [
-    { id: 1, name: 'John Doe', email: 'john@ucc.ac.tz', role: 'Student', status: 'Active' },
-    { id: 2, name: 'Prof. Sarah Johnson', email: 'sarah@ucc.ac.tz', role: 'Lecturer', status: 'Active' },
-    { id: 3, name: 'Admin User', email: 'admin@ucc.ac.tz', role: 'Admin', status: 'Active' },
+  // Navigation handlers
+  const handleLogout = () => {
+    if (window.confirm('Are you sure you want to logout?')) {
+      logout();
+      navigate('/login');
+    }
+  };
+
+  const handleHelp = () => {
+    showAlert('Help Center: Contact support at support@uccconnect.ac.tz or call +255 747 172 018');
+  };
+
+  const handleRefreshData = () => {
+    showNotification('Data refreshed successfully!');
+  };
+
+  const handleViewAllActivity = () => {
+    showAlert('Viewing all recent activities...');
+  };
+
+  const handleViewUser = (userName) => {
+    showAlert(`Viewing details for ${userName}`);
+  };
+
+  const handleEditUser = (userName) => {
+    showAlert(`Editing ${userName} - Edit form will appear here`);
+  };
+
+  const handleAddUser = () => {
+    if (newUser.name && newUser.email) {
+      const newId = users.length + 1;
+      const newUserData = {
+        id: newId,
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role,
+        department: newUser.department || 'General',
+        status: 'active',
+        joinDate: new Date().toISOString().split('T')[0],
+        avatar: newUser.role === 'lecturer' ? '👩‍🏫' : newUser.role === 'admin' ? '👨‍💼' : '👨‍🎓'
+      };
+      setUsers([...users, newUserData]);
+      setShowAddUserModal(false);
+      setNewUser({ name: '', email: '', role: 'student', department: '' });
+      showNotification(`User ${newUser.name} added successfully!`);
+    } else {
+      showAlert('Please fill in all required fields');
+    }
+  };
+
+  const handleDeleteUser = (userId, userName) => {
+    if (window.confirm(`Are you sure you want to delete ${userName}?`)) {
+      setUsers(users.filter(u => u.id !== userId));
+      showNotification(`${userName} has been deleted.`);
+    }
+  };
+
+  const handleExportUsers = () => {
+    showAlert('Exporting users data to CSV...');
+  };
+
+  const handleGenerateReport = () => {
+    showAlert('Generating system report... Report will be downloaded shortly.');
+  };
+
+  const [users, setUsers] = useState([
+    { id: 1, name: 'Dr. Sarah Johnson', email: 'sarah@ucc.ac.tz', role: 'lecturer', department: 'Computer Science', status: 'active', joinDate: '2024-01-15', avatar: '👩‍🏫' },
+    { id: 2, name: 'Prof. Michael Chen', email: 'michael@ucc.ac.tz', role: 'lecturer', department: 'Mathematics', status: 'active', joinDate: '2023-08-20', avatar: '👨‍🏫' },
+    { id: 3, name: 'John Doe', email: 'john@ucc.ac.tz', role: 'student', department: 'IT', status: 'active', joinDate: '2024-02-10', avatar: '👨‍🎓' },
+    { id: 4, name: 'Jane Smith', email: 'jane@ucc.ac.tz', role: 'student', department: 'CS', status: 'inactive', joinDate: '2023-11-05', avatar: '👩‍🎓' },
+    { id: 5, name: 'Admin User', email: 'admin@ucc.ac.tz', role: 'admin', department: 'Administration', status: 'active', joinDate: '2023-01-01', avatar: '👨‍💼' },
+  ]);
+
+  const [analytics, setAnalytics] = useState({
+    totalUsers: 245,
+    activeUsers: 189,
+    totalCourses: 24,
+    totalMessages: 1234,
+    assignmentsSubmitted: 456,
+    avgGrade: 78.5,
+    completionRate: 85,
+    satisfactionRate: 92
+  });
+
+  const recentActivities = [
+    { id: 1, user: 'Dr. Sarah Johnson', action: 'created a new course', target: 'Advanced Web Development', time: '2 hours ago', type: 'course' },
+    { id: 2, user: 'John Doe', action: 'submitted assignment', target: 'Database Systems', time: '3 hours ago', type: 'assignment' },
+    { id: 3, user: 'Prof. Michael Chen', action: 'posted announcement', target: 'Midterm Exam Schedule', time: '5 hours ago', type: 'announcement' },
+    { id: 4, user: 'Jane Smith', action: 'joined group', target: 'Study Group - Algorithms', time: '1 day ago', type: 'group' },
   ];
 
-  const sampleCourses = [
-    { id: 1, code: 'CS101', title: 'Programming Fundamentals', credits: 3, lecturer: 'Prof. Sarah', students: 45 },
-    { id: 2, code: 'CS201', title: 'Database Systems', credits: 3, lecturer: 'Dr. James', students: 38 },
+  const stats = [
+    { icon: Users, title: 'Total Users', value: analytics.totalUsers, change: '+12%', color: '#FFD700', delay: 0, action: () => setActiveTab('users') },
+    { icon: BookOpen, title: 'Active Courses', value: analytics.totalCourses, change: '+3', color: '#00E5FF', delay: 0.1, action: () => showAlert('Viewing all courses') },
+    { icon: MessageCircle, title: 'Messages', value: analytics.totalMessages, change: '+23%', color: '#32CD32', delay: 0.2, action: () => showAlert('Viewing all messages') },
+    { icon: TrendingUp, title: 'Completion Rate', value: `${analytics.completionRate}%`, change: '+5%', color: '#FF6B6B', delay: 0.3, action: () => showAlert('Viewing completion rate analytics') },
   ];
 
-  const sampleAnnouncements = [
-    { id: 1, title: 'Midterm Examinations', content: 'Midterm exams begin April 15th', date: '2024-03-18', priority: 'High', views: 1245 },
-    { id: 2, title: 'Course Registration', content: 'Registration opens March 25th', date: '2024-03-17', priority: 'Medium', views: 892 },
+  const filteredUsers = users.filter(user =>
+    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.email.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const getStatusColor = (status) => {
+    return status === 'active' ? '#32CD32' : '#FF4444';
+  };
+
+  const getRoleColor = (role) => {
+    return role === 'admin' ? '#FFD700' : role === 'lecturer' ? '#00E5FF' : '#32CD32';
+  };
+
+  // Sidebar menu items
+  const menuItems = [
+    { id: 'overview', label: 'Dashboard', icon: BarChart3 },
+    { id: 'users', label: 'User Management', icon: Users },
+    { id: 'analytics', label: 'Analytics', icon: Activity },
+    { id: 'courses', label: 'Courses', icon: BookOpen },
+    { id: 'reports', label: 'Reports', icon: FileText },
+    { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
-  const sampleGroups = [
-    { id: 1, name: 'CS101 Study Group', members: 45, messages: 1234, status: 'Active' },
-    { id: 2, name: 'Programming Forum', members: 128, messages: 3456, status: 'Active' },
-  ];
-
-  const sampleNotifications = [
-    { id: 1, title: 'New Assignment', message: 'Prof. Sarah posted a new assignment', date: '2024-03-18' },
-  ];
-
-  const sampleBackups = [
-    { id: 1, name: 'Full Backup', date: '2024-03-18', size: '2.4 GB', status: 'Completed' },
-  ];
-
-  const sampleActivities = [
-    { id: 1, user: 'John Doe', action: 'Submitted assignment', time: '2 min ago' },
-    { id: 2, user: 'Prof. Sarah', action: 'Created new course', time: '5 min ago' },
-  ];
-
-  const sampleDepartments = [
-    { id: 1, name: 'Computer Science', head: 'Prof. Sarah Johnson', courses: 12, students: 450 },
-    { id: 2, name: 'Information Technology', head: 'Dr. James Mwangi', courses: 10, students: 380 },
-  ];
-
-  const sampleApiKeys = [
-    { id: 1, name: 'Mobile App Key', lastUsed: '2024-03-18', requests: 12450, status: 'Active' },
-  ];
-
-  const sampleLogs = [
-    { id: 1, timestamp: '2024-03-18 10:30:00', user: 'admin@ucc.ac.tz', action: 'User Created', severity: 'Info' },
-  ];
-
-  const sampleFiles = [
-    { id: 1, name: 'Lecture Notes.pdf', type: 'PDF', size: '2.4 MB', uploader: 'Prof. Sarah', downloads: 45 },
-  ];
-
-  // ========== RENDER FUNCTIONS ==========
-
-  const renderDashboard = () => (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
-        <div className="glass-card p-5 text-center" style={{ border: `1px solid ${colors.border}` }}>
-          <div className="text-3xl font-bold" style={{ color: colors.primary }}>1,250</div>
-          <div style={{ color: colors.textSecondary }}>Total Users</div>
-        </div>
-        <div className="glass-card p-5 text-center" style={{ border: `1px solid ${colors.border}` }}>
-          <div className="text-3xl font-bold text-green-500">892</div>
-          <div style={{ color: colors.textSecondary }}>Active Today</div>
-        </div>
-        <div className="glass-card p-5 text-center" style={{ border: `1px solid ${colors.border}` }}>
-          <div className="text-3xl font-bold text-blue-500">48</div>
-          <div style={{ color: colors.textSecondary }}>Active Courses</div>
-        </div>
-        <div className="glass-card p-5 text-center" style={{ border: `1px solid ${colors.border}` }}>
-          <div className="text-3xl font-bold text-purple-500">99.9%</div>
-          <div style={{ color: colors.textSecondary }}>Uptime</div>
+  // Tab render functions
+  const renderOverview = () => (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="lg:col-span-2 glass-card p-6" style={{ border: `1px solid ${colors.border}` }}>
+        <div className="flex justify-between items-center mb-4"><h2 className="text-xl font-bold" style={{ color: colors.textPrimary }}>Recent Activity</h2><button onClick={handleViewAllActivity} className="text-sm hover:underline" style={{ color: colors.primary }}>View All</button></div>
+        <div className="space-y-4">
+          {recentActivities.map((activity, index) => (
+            <motion.div key={activity.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.1 }} className="flex items-center gap-3 p-3 rounded-lg hover:scale-102 transition-all cursor-pointer" style={{ backgroundColor: `${colors.primary}05` }} onClick={() => showAlert(`Viewing: ${activity.user} ${activity.action} ${activity.target}`)}>
+              <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: `${colors.primary}20` }}>
+                {activity.type === 'course' && <BookOpen size={18} style={{ color: colors.primary }} />}
+                {activity.type === 'assignment' && <FileText size={18} style={{ color: colors.primary }} />}
+                {activity.type === 'announcement' && <Bell size={18} style={{ color: colors.primary }} />}
+                {activity.type === 'group' && <Users size={18} style={{ color: colors.primary }} />}
+              </div>
+              <div className="flex-1"><p className="text-sm" style={{ color: colors.textPrimary }}><strong>{activity.user}</strong> {activity.action}: <span style={{ color: colors.primary }}>{activity.target}</span></p><p className="text-xs mt-1" style={{ color: colors.textSubtle }}>{activity.time}</p></div>
+              <MoreVertical size={16} style={{ color: colors.textSubtle }} />
+            </motion.div>
+          ))}
         </div>
       </div>
-      <div className="glass-card p-5" style={{ border: `1px solid ${colors.border}` }}>
-        <h2 className="text-lg font-bold mb-4" style={{ color: colors.textPrimary }}>Recent Activity</h2>
-        {sampleActivities.map(activity => (
-          <div key={activity.id} className="flex justify-between p-2 rounded" style={{ backgroundColor: `${colors.primary}05` }}>
-            <span style={{ color: colors.textPrimary }}>{activity.user}</span>
-            <span style={{ color: colors.textSecondary }}>{activity.action}</span>
-            <span className="text-xs" style={{ color: colors.textSubtle }}>{activity.time}</span>
-          </div>
-        ))}
+
+      <div className="glass-card p-6" style={{ border: `1px solid ${colors.border}` }}>
+        <h2 className="text-xl font-bold mb-4" style={{ color: colors.textPrimary }}>System Status</h2>
+        <div className="space-y-4">
+          <div><div className="flex justify-between text-sm mb-1"><span style={{ color: colors.textSecondary }}>Server Uptime</span><span style={{ color: colors.primary }}>99.9%</span></div><div className="w-full h-2 rounded-full" style={{ backgroundColor: `${colors.border}` }}><div className="h-2 rounded-full" style={{ width: '99.9%', backgroundColor: colors.primary }} /></div></div>
+          <div><div className="flex justify-between text-sm mb-1"><span style={{ color: colors.textSecondary }}>Storage Used</span><span style={{ color: colors.primary }}>45GB / 100GB</span></div><div className="w-full h-2 rounded-full" style={{ backgroundColor: `${colors.border}` }}><div className="h-2 rounded-full" style={{ width: '45%', backgroundColor: colors.secondary }} /></div></div>
+          <div><div className="flex justify-between text-sm mb-1"><span style={{ color: colors.textSecondary }}>Active Sessions</span><span style={{ color: colors.primary }}>127</span></div><div className="w-full h-2 rounded-full" style={{ backgroundColor: `${colors.border}` }}><div className="h-2 rounded-full" style={{ width: '65%', backgroundColor: colors.secondary }} /></div></div>
+        </div>
+        <div className="mt-6 p-4 rounded-lg cursor-pointer hover:scale-102 transition-all" style={{ backgroundColor: `${colors.primary}10` }} onClick={() => showAlert('Security status: All systems operational. No threats detected.')}>
+          <div className="flex items-center gap-2 mb-2"><Shield size={16} style={{ color: colors.primary }} /><span className="text-sm font-semibold" style={{ color: colors.textPrimary }}>Security Status</span></div>
+          <p className="text-xs" style={{ color: colors.textSecondary }}>All systems operational. No security threats detected.</p>
+        </div>
       </div>
     </div>
   );
 
   const renderUserManagement = () => (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
-        <div className="glass-card p-5" style={{ border: `1px solid ${colors.border}` }}>
-          <div className="text-2xl font-bold" style={{ color: colors.primary }}>1,250</div>
-          <div style={{ color: colors.textSecondary }}>Total Users</div>
-        </div>
-        <div className="glass-card p-5" style={{ border: `1px solid ${colors.border}` }}>
-          <div className="text-2xl font-bold text-green-500">892</div>
-          <div style={{ color: colors.textSecondary }}>Active Users</div>
-        </div>
-        <div className="glass-card p-5" style={{ border: `1px solid ${colors.border}` }}>
-          <div className="text-2xl font-bold text-yellow-500">187</div>
-          <div style={{ color: colors.textSecondary }}>New This Month</div>
-        </div>
-        <div className="glass-card p-5" style={{ border: `1px solid ${colors.border}` }}>
-          <div className="text-2xl font-bold text-cyan-500">78%</div>
-          <div style={{ color: colors.textSecondary }}>Engagement</div>
+    <div className="glass-card p-6" style={{ border: `1px solid ${colors.border}` }}>
+      <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
+        <div><h2 className="text-xl font-bold" style={{ color: colors.textPrimary }}>User Management</h2><p className="text-sm" style={{ color: colors.textSecondary }}>Manage all users across the platform</p></div>
+        <div className="flex gap-3 flex-wrap">
+          <div className="relative"><Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2" style={{ color: colors.textSubtle }} /><input type="text" placeholder="Search users..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10 pr-3 py-2 rounded-lg border" style={{ backgroundColor: colors.background, borderColor: colors.border, color: colors.textPrimary }} /></div>
+          <button onClick={() => setShowAddUserModal(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg hover:opacity-80" style={{ backgroundColor: `${colors.primary}20`, color: colors.primary }}><UserPlus size={16} /> Add User</button>
+          <button onClick={handleExportUsers} className="flex items-center gap-2 px-4 py-2 rounded-lg hover:opacity-80" style={{ border: `1px solid ${colors.border}`, color: colors.textSecondary }}><Download size={16} /> Export</button>
         </div>
       </div>
-      <div className="glass-card p-5" style={{ border: `1px solid ${colors.border}` }}>
-        <h2 className="text-lg font-bold mb-4" style={{ color: colors.textPrimary }}>User Management Overview</h2>
-        <p style={{ color: colors.textSecondary }}>Manage all platform users, roles, and permissions.</p>
-        <div className="mt-4 flex gap-3">
-          <button className="px-4 py-2 rounded-lg text-sm" style={{ backgroundColor: colors.primary, color: '#000' }}>+ Add User</button>
-          <button className="px-4 py-2 rounded-lg text-sm" style={{ border: `1px solid ${colors.border}`, color: colors.textPrimary }}>Bulk Import</button>
+
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead><tr style={{ borderBottom: `1px solid ${colors.border}` }}><th className="text-left py-3 px-4">User</th><th className="text-left py-3 px-4">Email</th><th className="text-left py-3 px-4">Role</th><th className="text-left py-3 px-4">Department</th><th className="text-left py-3 px-4">Status</th><th className="text-left py-3 px-4">Join Date</th><th className="text-left py-3 px-4">Actions</th></tr></thead>
+          <tbody>
+            {filteredUsers.map((user, index) => (
+              <motion.tr key={user.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: index * 0.05 }} style={{ borderBottom: `1px solid ${colors.border}` }}>
+                <td className="py-3 px-4"><div className="flex items-center gap-3"><div className="text-2xl">{user.avatar}</div><div className="font-medium" style={{ color: colors.textPrimary }}>{user.name}</div></div></td>
+                <td className="py-3 px-4" style={{ color: colors.textSecondary }}>{user.email}</td>
+                <td className="py-3 px-4"><span className="text-xs px-2 py-1 rounded-full" style={{ backgroundColor: `${getRoleColor(user.role)}20`, color: getRoleColor(user.role) }}>{user.role}</span></td>
+                <td className="py-3 px-4" style={{ color: colors.textSecondary }}>{user.department}</td>
+                <td className="py-3 px-4"><span className="flex items-center gap-1 text-xs"><div className="w-2 h-2 rounded-full" style={{ backgroundColor: getStatusColor(user.status) }} /><span style={{ color: getStatusColor(user.status) }}>{user.status}</span></span></td>
+                <td className="py-3 px-4" style={{ color: colors.textSecondary }}>{user.joinDate}</td>
+                <td className="py-3 px-4"><div className="flex gap-2"><button onClick={() => handleViewUser(user.name)} className="p-1 rounded hover:opacity-70 transition" style={{ color: colors.primary }}><Eye size={16} /></button><button onClick={() => handleEditUser(user.name)} className="p-1 rounded hover:opacity-70 transition" style={{ color: colors.secondary }}><Edit size={16} /></button><button onClick={() => handleDeleteUser(user.id, user.name)} className="p-1 rounded hover:opacity-70 transition" style={{ color: '#FF4444' }}><Trash2 size={16} /></button></div></td>
+              </motion.tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
+  const renderAnalytics = () => (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="glass-card p-6" style={{ border: `1px solid ${colors.border}` }}>
+        <h2 className="text-xl font-bold mb-4" style={{ color: colors.textPrimary }}>User Engagement</h2>
+        <div className="space-y-3">
+          <div><div className="flex justify-between text-sm mb-1"><span style={{ color: colors.textSecondary }}>Active Users</span><span style={{ color: colors.primary }}>{analytics.activeUsers}/{analytics.totalUsers}</span></div><div className="w-full h-2 rounded-full" style={{ backgroundColor: `${colors.border}` }}><div className="h-2 rounded-full" style={{ width: `${(analytics.activeUsers / analytics.totalUsers) * 100}%`, backgroundColor: colors.primary }} /></div></div>
+          <div><div className="flex justify-between text-sm mb-1"><span style={{ color: colors.textSecondary }}>Assignment Submission Rate</span><span style={{ color: colors.primary }}>{analytics.assignmentsSubmitted}</span></div><div className="w-full h-2 rounded-full" style={{ backgroundColor: `${colors.border}` }}><div className="h-2 rounded-full" style={{ width: '78%', backgroundColor: colors.secondary }} /></div></div>
+          <div><div className="flex justify-between text-sm mb-1"><span style={{ color: colors.textSecondary }}>Course Completion Rate</span><span style={{ color: colors.primary }}>{analytics.completionRate}%</span></div><div className="w-full h-2 rounded-full" style={{ backgroundColor: `${colors.border}` }}><div className="h-2 rounded-full" style={{ width: `${analytics.completionRate}%`, backgroundColor: '#32CD32' }} /></div></div>
+        </div>
+        <button onClick={handleGenerateReport} className="mt-4 w-full py-2 rounded-lg text-sm" style={{ backgroundColor: colors.primary, color: '#000' }}>Generate Full Report</button>
+      </div>
+      <div className="glass-card p-6" style={{ border: `1px solid ${colors.border}` }}>
+        <h2 className="text-xl font-bold mb-4" style={{ color: colors.textPrimary }}>User Distribution</h2>
+        <div className="space-y-3">
+          <div className="flex justify-between items-center p-3 rounded-lg cursor-pointer hover:scale-102 transition-all" style={{ backgroundColor: `${colors.primary}10` }} onClick={() => showAlert('Viewing all lecturers')}><span style={{ color: colors.textPrimary }}>👨‍🏫 Lecturers</span><span className="font-bold" style={{ color: colors.primary }}>8</span></div>
+          <div className="flex justify-between items-center p-3 rounded-lg cursor-pointer hover:scale-102 transition-all" style={{ backgroundColor: `${colors.secondary}10` }} onClick={() => showAlert('Viewing all students')}><span style={{ color: colors.textPrimary }}>👨‍🎓 Students</span><span className="font-bold" style={{ color: colors.secondary }}>237</span></div>
+          <div className="flex justify-between items-center p-3 rounded-lg cursor-pointer hover:scale-102 transition-all" style={{ backgroundColor: `${colors.primary}10` }} onClick={() => showAlert('Viewing all admins')}><span style={{ color: colors.textPrimary }}>👨‍💼 Admins</span><span className="font-bold" style={{ color: colors.primary }}>3</span></div>
         </div>
       </div>
     </div>
   );
 
-  const renderManageUsers = () => (
-    <div className="glass-card overflow-hidden" style={{ border: `1px solid ${colors.border}` }}>
-      <div className="p-5 border-b" style={{ borderColor: colors.border }}>
-        <div className="flex justify-between">
-          <h2 className="text-lg font-bold" style={{ color: colors.textPrimary }}>All Users</h2>
-          <button className="px-3 py-1 rounded-lg text-sm" style={{ backgroundColor: colors.primary, color: '#000' }}>+ Add User</button>
-        </div>
-      </div>
-      <table className="w-full">
-        <thead style={{ backgroundColor: isDark ? `${colors.primary}10` : '#f9fafb' }}>
-          <tr>
-            <th className="px-5 py-3 text-left">Name</th>
-            <th className="px-5 py-3 text-left">Email</th>
-            <th className="px-5 py-3 text-left">Role</th>
-            <th className="px-5 py-3 text-left">Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {sampleUsers.map(user => (
-            <tr key={user.id} className="border-t" style={{ borderColor: colors.border }}>
-              <td className="px-5 py-3" style={{ color: colors.textPrimary }}>{user.name}</td>
-              <td className="px-5 py-3" style={{ color: colors.textSecondary }}>{user.email}</td>
-              <td className="px-5 py-3"><span className="px-2 py-1 rounded-full text-xs" style={{ backgroundColor: `${colors.primary}20`, color: colors.primary }}>{user.role}</span></td>
-              <td className="px-5 py-3"><span className="text-green-500">● {user.status}</span></td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-
-  const renderRoleAssignment = () => (
-    <div className="glass-card p-5" style={{ border: `1px solid ${colors.border}` }}>
-      <h2 className="text-lg font-bold mb-4" style={{ color: colors.textPrimary }}>Role Permissions Matrix</h2>
-      <table className="w-full">
-        <thead>
-          <tr className="border-b" style={{ borderColor: colors.border }}>
-            <th className="p-3 text-left">Permission</th>
-            <th className="p-3 text-center">Admin</th>
-            <th className="p-3 text-center">Lecturer</th>
-            <th className="p-3 text-center">Student</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr className="border-b" style={{ borderColor: colors.border }}>
-            <td className="p-3">Manage Users</td>
-            <td className="p-3 text-center">✅</td>
-            <td className="p-3 text-center">❌</td>
-            <td className="p-3 text-center">❌</td>
-          </tr>
-          <tr className="border-b" style={{ borderColor: colors.border }}>
-            <td className="p-3">Create Courses</td>
-            <td className="p-3 text-center">✅</td>
-            <td className="p-3 text-center">✅</td>
-            <td className="p-3 text-center">❌</td>
-          </tr>
-          <tr className="border-b" style={{ borderColor: colors.border }}>
-            <td className="p-3">View Grades</td>
-            <td className="p-3 text-center">✅</td>
-            <td className="p-3 text-center">✅</td>
-            <td className="p-3 text-center">✅</td>
-          </tr>
-        </tbody>
-      </table>
-      <button className="mt-5 px-4 py-2 rounded-lg text-sm" style={{ backgroundColor: colors.primary, color: '#000' }}>Edit Permissions</button>
-    </div>
-  );
-
-  const renderUserActivity = () => (
-    <div className="glass-card overflow-hidden" style={{ border: `1px solid ${colors.border}` }}>
-      <div className="p-5 border-b" style={{ borderColor: colors.border }}>
-        <h2 className="text-lg font-bold" style={{ color: colors.textPrimary }}>Recent User Activity</h2>
-      </div>
-      {sampleActivities.map(activity => (
-        <div key={activity.id} className="p-4 flex justify-between border-t" style={{ borderColor: colors.border }}>
-          <span style={{ color: colors.textPrimary }}>{activity.user}</span>
-          <span style={{ color: colors.textSecondary }}>{activity.action}</span>
-          <span style={{ color: colors.textSubtle }}>{activity.time}</span>
-        </div>
-      ))}
-    </div>
-  );
-
-  const render2FA = () => (
-    <div className="glass-card p-5" style={{ border: `1px solid ${colors.border}` }}>
-      <h2 className="text-lg font-bold mb-4" style={{ color: colors.textPrimary }}>2FA Enforcement</h2>
-      <div className="space-y-3">
-        <div className="flex justify-between p-3 rounded-lg" style={{ backgroundColor: `${colors.primary}10` }}>
-          <span>Admins</span>
-          <span className="text-green-500">● Enforced (100%)</span>
-        </div>
-        <div className="flex justify-between p-3 rounded-lg" style={{ backgroundColor: `${colors.primary}10` }}>
-          <span>Lecturers</span>
-          <span className="text-yellow-500">● Optional (45%)</span>
-        </div>
-        <div className="flex justify-between p-3 rounded-lg" style={{ backgroundColor: `${colors.primary}10` }}>
-          <span>Students</span>
-          <span className="text-gray-500">● Not Enforced</span>
-        </div>
-      </div>
-      <button className="mt-4 px-4 py-2 rounded-lg text-sm" style={{ backgroundColor: colors.primary, color: '#000' }}>Configure 2FA Policy</button>
-    </div>
-  );
-
-  const renderCourseManagement = () => (
-    <div className="glass-card overflow-hidden" style={{ border: `1px solid ${colors.border}` }}>
-      <div className="p-5 border-b flex justify-between" style={{ borderColor: colors.border }}>
-        <h2 className="text-lg font-bold" style={{ color: colors.textPrimary }}>All Courses</h2>
-        <button className="px-3 py-1 rounded-lg text-sm" style={{ backgroundColor: colors.primary, color: '#000' }}>+ Add Course</button>
-      </div>
-      <table className="w-full">
-        <thead style={{ backgroundColor: isDark ? `${colors.primary}10` : '#f9fafb' }}>
-          <tr>
-            <th className="px-5 py-3">Code</th>
-            <th className="px-5 py-3">Title</th>
-            <th className="px-5 py-3">Credits</th>
-            <th className="px-5 py-3">Lecturer</th>
-            <th className="px-5 py-3">Students</th>
-          </tr>
-        </thead>
-        <tbody>
-          {sampleCourses.map(course => (
-            <tr key={course.id} className="border-t" style={{ borderColor: colors.border }}>
-              <td className="px-5 py-3">{course.code}</td>
-              <td className="px-5 py-3">{course.title}</td>
-              <td className="px-5 py-3">{course.credits}</td>
-              <td className="px-5 py-3">{course.lecturer}</td>
-              <td className="px-5 py-3">{course.students}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-
-  const renderDepartments = () => (
-    <div className="glass-card overflow-hidden" style={{ border: `1px solid ${colors.border}` }}>
-      <div className="p-5 border-b" style={{ borderColor: colors.border }}>
-        <div className="flex justify-between">
-          <h2 className="text-lg font-bold" style={{ color: colors.textPrimary }}>Departments</h2>
-          <button className="px-3 py-1 rounded-lg text-sm" style={{ backgroundColor: colors.primary, color: '#000' }}>+ Add Department</button>
-        </div>
-      </div>
-      <table className="w-full">
-        <thead style={{ backgroundColor: isDark ? `${colors.primary}10` : '#f9fafb' }}>
-          <tr>
-            <th className="px-5 py-3">Department</th>
-            <th className="px-5 py-3">Head</th>
-            <th className="px-5 py-3">Courses</th>
-            <th className="px-5 py-3">Students</th>
-          </tr>
-        </thead>
-        <tbody>
-          {sampleDepartments.map(dept => (
-            <tr key={dept.id} className="border-t" style={{ borderColor: colors.border }}>
-              <td className="px-5 py-3">{dept.name}</td>
-              <td className="px-5 py-3">{dept.head}</td>
-              <td className="px-5 py-3">{dept.courses}</td>
-              <td className="px-5 py-3">{dept.students}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-
-  const renderAcademicCalendar = () => (
-    <div className="glass-card p-5" style={{ border: `1px solid ${colors.border}` }}>
-      <h2 className="text-lg font-bold mb-4" style={{ color: colors.textPrimary }}>Academic Calendar 2024</h2>
-      <div className="space-y-3">
-        <div className="flex justify-between p-3 rounded-lg" style={{ backgroundColor: `${colors.primary}10` }}>
-          <span>📅 Registration Period</span>
-          <span>Mar 25 - Apr 10, 2024</span>
-        </div>
-        <div className="flex justify-between p-3 rounded-lg" style={{ backgroundColor: `${colors.primary}10` }}>
-          <span>📚 Lectures Begin</span>
-          <span>Apr 15, 2024</span>
-        </div>
-        <div className="flex justify-between p-3 rounded-lg" style={{ backgroundColor: `${colors.primary}10` }}>
-          <span>✏️ Midterm Exams</span>
-          <span>Jun 10 - Jun 20, 2024</span>
-        </div>
-        <div className="flex justify-between p-3 rounded-lg" style={{ backgroundColor: `${colors.primary}10` }}>
-          <span>📝 Final Exams</span>
-          <span>Aug 5 - Aug 20, 2024</span>
-        </div>
-      </div>
-      <button className="mt-4 px-4 py-2 rounded-lg text-sm" style={{ backgroundColor: colors.primary, color: '#000' }}>Edit Calendar</button>
-    </div>
-  );
-
-  const renderAnnouncements = () => (
-    <div className="space-y-5">
-      <div className="flex justify-between">
-        <h2 className="text-lg font-bold" style={{ color: colors.textPrimary }}>Platform Announcements</h2>
-        <button className="px-4 py-2 rounded-lg text-sm" style={{ backgroundColor: colors.primary, color: '#000' }}>+ Create</button>
-      </div>
-      {sampleAnnouncements.map(ann => (
-        <div key={ann.id} className="glass-card p-4" style={{ border: `1px solid ${colors.border}` }}>
-          <h3 className="font-semibold" style={{ color: colors.textPrimary }}>{ann.title}</h3>
-          <p className="text-sm mt-1" style={{ color: colors.textSecondary }}>{ann.content}</p>
-          <div className="flex gap-3 mt-2 text-xs" style={{ color: colors.textSubtle }}>
-            <span>📅 {ann.date}</span>
-            <span>👁️ {ann.views} views</span>
-            <span className="px-2 py-0.5 rounded-full" style={{ backgroundColor: '#FF444420', color: '#FF4444' }}>{ann.priority}</span>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-
-  const renderGroupsRooms = () => (
-    <div className="space-y-5">
-      <div className="flex justify-between">
-        <h2 className="text-lg font-bold" style={{ color: colors.textPrimary }}>Groups & Rooms</h2>
-        <button className="px-4 py-2 rounded-lg text-sm" style={{ backgroundColor: colors.primary, color: '#000' }}>+ Create Group</button>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        {sampleGroups.map(group => (
-          <div key={group.id} className="glass-card p-4" style={{ border: `1px solid ${colors.border}` }}>
-            <h3 className="font-semibold" style={{ color: colors.textPrimary }}>{group.name}</h3>
-            <div className="flex gap-3 mt-2 text-sm" style={{ color: colors.textSecondary }}>
-              <span>👥 {group.members}</span>
-              <span>💬 {group.messages}</span>
-              <span className="text-green-500">● {group.status}</span>
-            </div>
+  const renderCourses = () => (
+    <div className="glass-card p-6" style={{ border: `1px solid ${colors.border}` }}>
+      <h2 className="text-xl font-bold mb-4" style={{ color: colors.textPrimary }}>Course Management</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {[
+          { id: 1, title: 'Advanced Web Development', code: 'CS401', students: 45, status: 'Active' },
+          { id: 2, title: 'Database Systems', code: 'CS302', students: 38, status: 'Active' },
+          { id: 3, title: 'Data Structures', code: 'CS301', students: 42, status: 'Active' },
+        ].map(course => (
+          <div key={course.id} className="p-4 rounded-lg cursor-pointer hover:scale-102 transition-all" style={{ backgroundColor: `${colors.primary}05`, border: `1px solid ${colors.border}` }} onClick={() => showAlert(`Managing course: ${course.title}`)}>
+            <h3 className="font-bold" style={{ color: colors.textPrimary }}>{course.title}</h3>
+            <p className="text-sm" style={{ color: colors.textSecondary }}>{course.code} • {course.students} students</p>
+            <span className="text-xs px-2 py-1 rounded-full mt-2 inline-block bg-green-500/20 text-green-500">{course.status}</span>
           </div>
         ))}
       </div>
     </div>
   );
 
-  const renderNotifications = () => (
-    <div className="space-y-5">
-      <div className="flex justify-between">
-        <h2 className="text-lg font-bold" style={{ color: colors.textPrimary }}>Notifications</h2>
-        <button className="px-4 py-2 rounded-lg text-sm" style={{ backgroundColor: colors.primary, color: '#000' }}>+ Send</button>
-      </div>
-      {sampleNotifications.map(notif => (
-        <div key={notif.id} className="glass-card p-4" style={{ border: `1px solid ${colors.border}` }}>
-          <h3 className="font-semibold" style={{ color: colors.textPrimary }}>{notif.title}</h3>
-          <p className="text-sm" style={{ color: colors.textSecondary }}>{notif.message}</p>
-          <div className="mt-2 text-xs" style={{ color: colors.textSubtle }}>{notif.date}</div>
-        </div>
-      ))}
-    </div>
-  );
-
-  const renderDatabaseBackup = () => (
-    <div className="glass-card overflow-hidden" style={{ border: `1px solid ${colors.border}` }}>
-      <div className="p-5 border-b" style={{ borderColor: colors.border }}>
-        <h2 className="text-lg font-bold" style={{ color: colors.textPrimary }}>Database Backups</h2>
-      </div>
-      <table className="w-full">
-        <tbody>
-          {sampleBackups.map(backup => (
-            <tr key={backup.id} className="border-t" style={{ borderColor: colors.border }}>
-              <td className="px-5 py-3">{backup.name}</td>
-              <td className="px-5 py-3">{backup.date}</td>
-              <td className="px-5 py-3">{backup.size}</td>
-              <td className="text-green-500">✓ {backup.status}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <div className="p-5 border-t" style={{ borderColor: colors.border }}>
-        <button className="px-4 py-2 rounded-lg text-sm" style={{ backgroundColor: colors.primary, color: '#000' }}>+ Run Backup</button>
-      </div>
-    </div>
-  );
-
-  const renderFileStorage = () => (
-    <div className="glass-card overflow-hidden" style={{ border: `1px solid ${colors.border}` }}>
-      <div className="p-5 border-b" style={{ borderColor: colors.border }}>
-        <h2 className="text-lg font-bold" style={{ color: colors.textPrimary }}>File Storage</h2>
-      </div>
-      <table className="w-full">
-        <thead style={{ backgroundColor: isDark ? `${colors.primary}10` : '#f9fafb' }}>
-          <tr>
-            <th className="px-5 py-3">Name</th>
-            <th className="px-5 py-3">Type</th>
-            <th className="px-5 py-3">Size</th>
-            <th className="px-5 py-3">Uploader</th>
-            <th className="px-5 py-3">Downloads</th>
-          </tr>
-        </thead>
-        <tbody>
-          {sampleFiles.map(file => (
-            <tr key={file.id} className="border-t" style={{ borderColor: colors.border }}>
-              <td className="px-5 py-3">{file.name}</td>
-              <td className="px-5 py-3">{file.type}</td>
-              <td className="px-5 py-3">{file.size}</td>
-              <td className="px-5 py-3">{file.uploader}</td>
-              <td className="px-5 py-3">{file.downloads}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-
-  const renderSystemHealth = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-      <div className="glass-card p-5" style={{ border: `1px solid ${colors.border}` }}>
-        <h3 className="font-bold mb-3">Server Status</h3>
-        <div className="space-y-2">
-          <div className="flex justify-between"><span>API Server</span><span className="text-green-500">● Operational</span></div>
-          <div className="flex justify-between"><span>Database</span><span className="text-green-500">● Connected</span></div>
-        </div>
-      </div>
-      <div className="glass-card p-5" style={{ border: `1px solid ${colors.border}` }}>
-        <h3 className="font-bold mb-3">Resource Usage</h3>
-        <div className="flex justify-between"><span>CPU: 45%</span><span>RAM: 62%</span></div>
-        <div className="flex justify-between mt-2"><span>Disk: 49%</span><span>Network: 28%</span></div>
-      </div>
-    </div>
-  );
-
-  const renderSystemLogs = () => (
-    <div className="glass-card overflow-hidden" style={{ border: `1px solid ${colors.border}` }}>
-      <div className="p-5 border-b" style={{ borderColor: colors.border }}>
-        <h2 className="text-lg font-bold" style={{ color: colors.textPrimary }}>System Logs</h2>
-      </div>
-      <table className="w-full">
-        <thead style={{ backgroundColor: isDark ? `${colors.primary}10` : '#f9fafb' }}>
-          <tr>
-            <th className="px-5 py-3">Timestamp</th>
-            <th className="px-5 py-3">User</th>
-            <th className="px-5 py-3">Action</th>
-            <th className="px-5 py-3">Severity</th>
-          </tr>
-        </thead>
-        <tbody>
-          {sampleLogs.map(log => (
-            <tr key={log.id} className="border-t" style={{ borderColor: colors.border }}>
-              <td className="px-5 py-3 text-sm">{log.timestamp}</td>
-              <td className="px-5 py-3">{log.user}</td>
-              <td className="px-5 py-3">{log.action}</td>
-              <td className="px-5 py-3"><span className="px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-500">{log.severity}</span></td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-
-  const renderMaintenance = () => (
-    <div className="glass-card p-5 text-center" style={{ border: `1px solid ${colors.border}` }}>
-      <div className="text-6xl mb-4">🔧</div>
-      <h2 className="text-xl font-bold mb-2" style={{ color: colors.textPrimary }}>Maintenance Mode</h2>
-      <p className="mb-4" style={{ color: colors.textSecondary }}>Currently: <span className="text-green-500">● System Online</span></p>
-      <button className="px-4 py-2 rounded-lg text-sm" style={{ backgroundColor: '#FF4444', color: '#fff' }}>Enable Maintenance Mode</button>
-    </div>
-  );
-
-  const renderCompliance = () => (
-    <div className="glass-card p-5" style={{ border: `1px solid ${colors.border}` }}>
-      <h2 className="text-lg font-bold mb-4" style={{ color: colors.textPrimary }}>Compliance Status</h2>
-      <div className="space-y-3">
-        <div className="flex justify-between p-3 rounded-lg" style={{ backgroundColor: `${colors.primary}10` }}>
-          <span>GDPR Compliance</span><span className="text-green-500">✅ Compliant</span>
-        </div>
-        <div className="flex justify-between p-3 rounded-lg" style={{ backgroundColor: `${colors.primary}10` }}>
-          <span>Data Protection</span><span className="text-green-500">✅ Active</span>
-        </div>
-        <div className="flex justify-between p-3 rounded-lg" style={{ backgroundColor: `${colors.primary}10` }}>
-          <span>NACTVET Standards</span><span className="text-yellow-500">⚠️ Pending Audit</span>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderAPIKeys = () => (
-    <div className="glass-card overflow-hidden" style={{ border: `1px solid ${colors.border}` }}>
-      <div className="p-5 border-b flex justify-between" style={{ borderColor: colors.border }}>
-        <h2 className="text-lg font-bold" style={{ color: colors.textPrimary }}>API Keys</h2>
-        <button className="px-3 py-1 rounded-lg text-sm" style={{ backgroundColor: colors.primary, color: '#000' }}>+ Generate Key</button>
-      </div>
-      <table className="w-full">
-        <tbody>
-          {sampleApiKeys.map(key => (
-            <tr key={key.id} className="border-t" style={{ borderColor: colors.border }}>
-              <td className="px-5 py-3">{key.name}</td>
-              <td className="px-5 py-3">{key.lastUsed}</td>
-              <td className="px-5 py-3">{key.requests.toLocaleString()} req</td>
-              <td className="text-green-500">● {key.status}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-
-  const renderEmailConfig = () => (
-    <div className="glass-card p-5" style={{ border: `1px solid ${colors.border}` }}>
-      <h2 className="text-lg font-bold mb-4" style={{ color: colors.textPrimary }}>Email Configuration</h2>
-      <div className="space-y-3">
-        <div className="flex justify-between"><span>SMTP Server:</span><span className="font-mono">smtp.gmail.com:587</span></div>
-        <div className="flex justify-between"><span>Status:</span><span className="text-green-500">✅ Connected</span></div>
-        <div className="flex justify-between"><span>Queue Size:</span><span>124 emails pending</span></div>
-      </div>
-      <button className="mt-4 px-4 py-2 rounded-lg text-sm" style={{ backgroundColor: colors.primary, color: '#000' }}>Test Connection</button>
-    </div>
-  );
-
-  const renderSMSGateway = () => (
-    <div className="glass-card p-5" style={{ border: `1px solid ${colors.border}` }}>
-      <h2 className="text-lg font-bold mb-4" style={{ color: colors.textPrimary }}>SMS Gateway (Africa's Talking)</h2>
-      <div className="space-y-3">
-        <div className="flex justify-between"><span>Balance:</span><span className="font-bold">4,230 SMS credits</span></div>
-        <div className="flex justify-between"><span>Monthly Usage:</span><span>1,234 SMS ($12.34)</span></div>
-        <div className="flex justify-between"><span>Status:</span><span className="text-green-500">✅ Operational</span></div>
-      </div>
-      <button className="mt-4 px-4 py-2 rounded-lg text-sm" style={{ backgroundColor: colors.primary, color: '#000' }}>Configure API</button>
-    </div>
-  );
-
-  const renderAnalytics = () => (
-    <div className="space-y-5">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <div className="glass-card p-5" style={{ border: `1px solid ${colors.border}` }}>
-          <div className="text-2xl font-bold" style={{ color: colors.primary }}>1,250</div>
-          <div>Total Users</div>
-          <div className="text-xs text-green-500">↑ +12%</div>
-        </div>
-        <div className="glass-card p-5" style={{ border: `1px solid ${colors.border}` }}>
-          <div className="text-2xl font-bold text-green-500">892</div>
-          <div>DAU</div>
-          <div className="text-xs text-green-500">↑ +5%</div>
-        </div>
-        <div className="glass-card p-5" style={{ border: `1px solid ${colors.border}` }}>
-          <div className="text-2xl font-bold text-blue-500">48</div>
-          <div>Courses</div>
-          <div className="text-xs text-green-500">↑ +3</div>
-        </div>
-      </div>
-    </div>
-  );
-
   const renderReports = () => (
-    <div className="glass-card p-5" style={{ border: `1px solid ${colors.border}` }}>
-      <h2 className="text-lg font-bold mb-4" style={{ color: colors.textPrimary }}>Generate Reports</h2>
+    <div className="glass-card p-6" style={{ border: `1px solid ${colors.border}` }}>
+      <h2 className="text-xl font-bold mb-4" style={{ color: colors.textPrimary }}>Generate Reports</h2>
       <div className="space-y-3">
-        <button className="w-full text-left p-3 rounded-lg" style={{ backgroundColor: `${colors.primary}10` }}>📊 User Activity Report</button>
-        <button className="w-full text-left p-3 rounded-lg" style={{ backgroundColor: `${colors.primary}10` }}>📚 Course Enrollment Report</button>
-        <button className="w-full text-left p-3 rounded-lg" style={{ backgroundColor: `${colors.primary}10` }}>📝 Assignment Submissions</button>
-      </div>
-      <button className="mt-4 w-full px-4 py-2 rounded-lg text-sm" style={{ backgroundColor: colors.primary, color: '#000' }}>Export Selected Report</button>
-    </div>
-  );
-
-  const renderImportExport = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-      <div className="glass-card p-5" style={{ border: `1px solid ${colors.border}` }}>
-        <h2 className="text-lg font-bold mb-4" style={{ color: colors.textPrimary }}>Import Data</h2>
-        <div className="border-2 border-dashed p-8 text-center rounded-lg" style={{ borderColor: colors.border }}>
-          <div className="text-4xl mb-2">📁</div>
-          <p>Drag & drop CSV/Excel file here</p>
-          <button className="mt-3 px-4 py-2 rounded-lg text-sm" style={{ backgroundColor: colors.primary, color: '#000' }}>Select File</button>
-        </div>
-      </div>
-      <div className="glass-card p-5" style={{ border: `1px solid ${colors.border}` }}>
-        <h2 className="text-lg font-bold mb-4" style={{ color: colors.textPrimary }}>Export Data</h2>
-        <div className="space-y-3">
-          <button className="w-full text-left p-3 rounded-lg" style={{ backgroundColor: `${colors.primary}10` }}>📥 Export Users (CSV)</button>
-          <button className="w-full text-left p-3 rounded-lg" style={{ backgroundColor: `${colors.primary}10` }}>📥 Export Courses (Excel)</button>
-        </div>
+        <button onClick={() => showAlert('Generating User Activity Report...')} className="w-full text-left p-3 rounded-lg flex justify-between items-center" style={{ backgroundColor: `${colors.primary}10` }}><span>📊 User Activity Report</span><ChevronRight size={16} style={{ color: colors.primary }} /></button>
+        <button onClick={() => showAlert('Generating Course Analytics Report...')} className="w-full text-left p-3 rounded-lg flex justify-between items-center" style={{ backgroundColor: `${colors.primary}10` }}><span>📚 Course Analytics Report</span><ChevronRight size={16} style={{ color: colors.primary }} /></button>
+        <button onClick={() => showAlert('Generating Financial Report...')} className="w-full text-left p-3 rounded-lg flex justify-between items-center" style={{ backgroundColor: `${colors.primary}10` }}><span>💰 Financial Summary Report</span><ChevronRight size={16} style={{ color: colors.primary }} /></button>
+        <button onClick={() => showAlert('Generating System Logs Report...')} className="w-full text-left p-3 rounded-lg flex justify-between items-center" style={{ backgroundColor: `${colors.primary}10` }}><span>📜 System Logs Report</span><ChevronRight size={16} style={{ color: colors.primary }} /></button>
       </div>
     </div>
   );
 
-  // Main render content switch - ALL sections mapped
+  const renderSettings = () => (
+    <div className="glass-card p-6" style={{ border: `1px solid ${colors.border}` }}>
+      <h2 className="text-xl font-bold mb-4" style={{ color: colors.textPrimary }}>System Settings</h2>
+      <div className="space-y-4">
+        <div className="flex justify-between items-center p-3 rounded-lg" style={{ backgroundColor: `${colors.primary}05` }}><span>Email Notifications</span><button onClick={() => showAlert('Toggle email notifications')} className="px-3 py-1 rounded-lg text-sm" style={{ backgroundColor: colors.primary, color: '#000' }}>Enable</button></div>
+        <div className="flex justify-between items-center p-3 rounded-lg" style={{ backgroundColor: `${colors.primary}05` }}><span>SMS Alerts</span><button onClick={() => showAlert('Toggle SMS alerts')} className="px-3 py-1 rounded-lg text-sm" style={{ backgroundColor: colors.primary, color: '#000' }}>Enable</button></div>
+        <div className="flex justify-between items-center p-3 rounded-lg" style={{ backgroundColor: `${colors.primary}05` }}><span>Maintenance Mode</span><button onClick={() => showAlert('Toggle maintenance mode')} className="px-3 py-1 rounded-lg text-sm" style={{ backgroundColor: colors.primary, color: '#000' }}>Disable</button></div>
+        <div className="flex justify-between items-center p-3 rounded-lg" style={{ backgroundColor: `${colors.primary}05` }}><span>Backup Database</span><button onClick={() => showAlert('Starting database backup...')} className="px-3 py-1 rounded-lg text-sm" style={{ backgroundColor: colors.primary, color: '#000' }}>Run Backup</button></div>
+      </div>
+    </div>
+  );
+
   const renderContent = () => {
-    switch(activeSection) {
-      case 'dashboard': return renderDashboard();
-      case 'user-management': return renderUserManagement();
-      case 'manage-users': return renderManageUsers();
-      case 'role-assignment': return renderRoleAssignment();
-      case 'user-activity': return renderUserActivity();
-      case '2fa-enforcement': return render2FA();
-      case 'course-management': return renderCourseManagement();
-      case 'departments': return renderDepartments();
-      case 'academic-calendar': return renderAcademicCalendar();
-      case 'announcements': return renderAnnouncements();
-      case 'groups-rooms': return renderGroupsRooms();
-      case 'notifications': return renderNotifications();
-      case 'database-backup': return renderDatabaseBackup();
-      case 'file-storage': return renderFileStorage();
-      case 'system-health': return renderSystemHealth();
-      case 'system-logs': return renderSystemLogs();
-      case 'maintenance': return renderMaintenance();
-      case 'compliance': return renderCompliance();
-      case 'api-keys': return renderAPIKeys();
-      case 'email-config': return renderEmailConfig();
-      case 'sms-gateway': return renderSMSGateway();
+    switch(activeTab) {
+      case 'overview': return renderOverview();
+      case 'users': return renderUserManagement();
       case 'analytics': return renderAnalytics();
+      case 'courses': return renderCourses();
       case 'reports': return renderReports();
-      case 'import-export': return renderImportExport();
-      default: return renderDashboard();
+      case 'settings': return renderSettings();
+      default: return renderOverview();
     }
   };
 
-  // Sidebar menu groups
-  const menuGroups = [
-    { id: 'main', label: '📊 Main', sections: ['dashboard'] },
-    { id: 'user', label: '👥 User Management', sections: ['user-management', 'manage-users', 'role-assignment', 'user-activity', '2fa-enforcement'] },
-    { id: 'academic', label: '📚 Academic', sections: ['course-management', 'departments', 'academic-calendar'] },
-    { id: 'comm', label: '💬 Communication', sections: ['announcements', 'groups-rooms', 'notifications'] },
-    { id: 'system', label: '⚙️ System', sections: ['database-backup', 'file-storage', 'system-health', 'system-logs', 'maintenance'] },
-    { id: 'security', label: '🔒 Security', sections: ['compliance', 'api-keys', 'email-config', 'sms-gateway'] },
-    { id: 'reporting', label: '📊 Reporting', sections: ['analytics', 'reports', 'import-export'] },
-  ];
-
   return (
-    <div className="flex h-screen" style={{ backgroundColor: colors.background }}>
+    <div className="flex h-screen overflow-hidden" style={{ backgroundColor: colors.background }}>
+      {/* Notification Toast */}
+      {notification.show && (
+        <div className="fixed top-4 right-4 z-50 animate-slide-in">
+          <div className={`p-4 rounded-lg shadow-lg flex items-center gap-3 ${notification.type === 'error' ? 'bg-red-500' : notification.type === 'info' ? 'bg-blue-500' : 'bg-green-500'}`}>
+            {notification.type === 'success' && <CheckCircle size={20} className="text-white" />}
+            {notification.type === 'error' && <AlertCircle size={20} className="text-white" />}
+            <span className="text-white">{notification.message}</span>
+          </div>
+        </div>
+      )}
+
       {/* Sidebar */}
       <div className={`${sidebarOpen ? 'w-64' : 'w-20'} transition-all duration-300 flex flex-col shadow-xl`} style={{ backgroundColor: isDark ? '#1a1a2e' : '#ffffff', borderRight: `1px solid ${colors.border}` }}>
         <div className="p-4 border-b flex justify-between items-center" style={{ borderColor: colors.border }}>
-          {sidebarOpen ? <h1 className="text-xl font-bold" style={{ color: colors.primary }}>UCC Connect Hub</h1> : <h1 className="text-xl font-bold" style={{ color: colors.primary }}>UC</h1>}
+          {sidebarOpen ? <h1 className="text-xl font-bold" style={{ color: colors.primary }}>Admin Portal</h1> : <h1 className="text-xl font-bold" style={{ color: colors.primary }}>AD</h1>}
           <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{ color: colors.textSecondary }}>☰</button>
         </div>
         
         <div className="p-4 border-b" style={{ borderColor: colors.border }}>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: `${colors.primary}20`, color: colors.primary }}>👨‍💼</div>
-            {sidebarOpen && (
-              <div>
-                <p className="text-sm font-semibold" style={{ color: colors.textPrimary }}>Admin User</p>
-                <p className="text-xs" style={{ color: colors.textSecondary }}>System Administrator</p>
-              </div>
-            )}
-          </div>
+          <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: `${colors.primary}20`, color: colors.primary }}>👨‍💼</div>{sidebarOpen && <div><p className="text-sm font-semibold" style={{ color: colors.textPrimary }}>{user?.name || 'Admin User'}</p><p className="text-xs" style={{ color: colors.textSecondary }}>Administrator</p></div>}</div>
         </div>
         
         <nav className="flex-1 py-4 overflow-y-auto">
-          {menuGroups.map(group => (
-            <div key={group.id} className="mb-4">
-              {sidebarOpen && <div className="px-4 py-2 text-xs uppercase tracking-wider" style={{ color: colors.textSecondary }}>{group.label}</div>}
-              {group.sections.map(sectionId => (
-                <button
-                  key={sectionId}
-                  onClick={() => setActiveSection(sectionId)}
-                  className={`w-full flex items-center gap-3 px-4 py-2 text-sm transition-all ${activeSection === sectionId ? 'font-semibold' : ''}`}
-                  style={{ backgroundColor: activeSection === sectionId ? `${colors.primary}15` : 'transparent', color: activeSection === sectionId ? colors.primary : colors.textSecondary }}
-                >
-                  <span>{sectionIcons[sectionId] || '•'}</span>
-                  {sidebarOpen && <span>{sectionTitles[sectionId]}</span>}
-                </button>
-              ))}
-            </div>
+          {menuItems.map(item => (
+            <button key={item.id} onClick={() => setActiveTab(item.id)} className={`w-full flex items-center gap-3 px-4 py-2 text-sm transition-all ${activeTab === item.id ? 'font-semibold' : ''}`} style={{ backgroundColor: activeTab === item.id ? `${colors.primary}15` : 'transparent', color: activeTab === item.id ? colors.primary : colors.textSecondary }}>
+              <item.icon size={18} />{sidebarOpen && <span>{item.label}</span>}
+            </button>
           ))}
         </nav>
         
-        <div className="p-4 border-t" style={{ borderColor: colors.border }}>
-          <button className="w-full text-left text-sm p-2 rounded-lg transition-all" style={{ color: colors.textSecondary, backgroundColor: `${colors.primary}10` }}>
-            {sidebarOpen ? '🚪 Logout' : '🚪'}
-          </button>
+        <div className="p-4 border-t space-y-2" style={{ borderColor: colors.border }}>
+          <button onClick={handleHelp} className="w-full flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-all" style={{ color: colors.textSecondary, backgroundColor: `${colors.primary}10` }}><HelpCircle size={18} />{sidebarOpen && <span>Help Center</span>}</button>
+          <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-all" style={{ color: '#FF4444', backgroundColor: '#FF444410' }}><LogOut size={18} />{sidebarOpen && <span>Logout</span>}</button>
         </div>
       </div>
       
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="px-6 py-4 flex justify-between items-center shadow-sm" style={{ backgroundColor: isDark ? '#1a1a2e' : '#ffffff', borderBottom: `1px solid ${colors.border}` }}>
-          <h1 className="text-xl font-semibold" style={{ color: colors.textPrimary }}>{sectionTitles[activeSection] || 'Admin Dashboard'}</h1>
-          <span className="text-sm" style={{ color: colors.textSecondary }}>Welcome back, Admin!</span>
+          <h1 className="text-xl font-semibold" style={{ color: colors.textPrimary }}>Admin Dashboard</h1>
+          <div className="flex items-center gap-3"><button onClick={handleRefreshData} className="flex items-center gap-2 px-3 py-1 rounded-lg text-sm" style={{ backgroundColor: `${colors.primary}20`, color: colors.primary }}><RefreshCw size={14} /> Refresh</button><div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: `${colors.primary}20`, color: colors.primary }}>👨‍💼</div><span className="text-sm hidden md:block" style={{ color: colors.textSecondary }}>Admin</span></div>
         </header>
         <main className="flex-1 overflow-y-auto p-6">
+          {/* Stats Cards - Only show on overview */}
+          {activeTab === 'overview' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              {stats.map((stat, index) => (
+                <div key={index} onClick={stat.action} className="cursor-pointer">
+                  <StatsCard {...stat} />
+                </div>
+              ))}
+            </div>
+          )}
           {renderContent()}
         </main>
       </div>
+
+      {/* Add User Modal */}
+      {showAddUserModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowAddUserModal(false)}>
+          <div className="glass-card p-6 max-w-md w-full" style={{ border: `1px solid ${colors.border}` }} onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4"><h3 className="text-xl font-bold" style={{ color: colors.textPrimary }}>Add New User</h3><button onClick={() => setShowAddUserModal(false)}><X size={20} style={{ color: colors.textSecondary }} /></button></div>
+            <div className="space-y-3"><input type="text" placeholder="Full Name" className="w-full px-3 py-2 rounded-lg border" style={{ backgroundColor: colors.background, borderColor: colors.border, color: colors.textPrimary }} value={newUser.name} onChange={(e) => setNewUser({...newUser, name: e.target.value})} /><input type="email" placeholder="Email" className="w-full px-3 py-2 rounded-lg border" style={{ backgroundColor: colors.background, borderColor: colors.border, color: colors.textPrimary }} value={newUser.email} onChange={(e) => setNewUser({...newUser, email: e.target.value})} /><select className="w-full px-3 py-2 rounded-lg border" style={{ backgroundColor: colors.background, borderColor: colors.border, color: colors.textPrimary }} value={newUser.role} onChange={(e) => setNewUser({...newUser, role: e.target.value})}><option value="student">Student</option><option value="lecturer">Lecturer</option><option value="admin">Admin</option></select><input type="text" placeholder="Department" className="w-full px-3 py-2 rounded-lg border" style={{ backgroundColor: colors.background, borderColor: colors.border, color: colors.textPrimary }} value={newUser.department} onChange={(e) => setNewUser({...newUser, department: e.target.value})} /><button onClick={handleAddUser} className="w-full py-2 rounded-lg" style={{ backgroundColor: colors.primary, color: '#000' }}>Add User</button></div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

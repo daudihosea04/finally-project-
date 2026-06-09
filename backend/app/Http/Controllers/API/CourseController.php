@@ -31,6 +31,31 @@ class CourseController extends Controller
         ]);
     }
 
+    // Get courses by lecturer (for current logged in lecturer)
+    public function lecturerCourses(Request $request)
+    {
+        $courses = Course::where('lecturer_id', $request->user()->id)
+            ->with('lecturer')
+            ->get();
+        
+        return response()->json([
+            'success' => true,
+            'data' => $courses
+        ]);
+    }
+
+    // Get courses for student (enrolled courses)
+    public function studentCourses(Request $request)
+    {
+        $user = $request->user();
+        $courses = $user->courses()->with('lecturer')->get();
+        
+        return response()->json([
+            'success' => true,
+            'data' => $courses
+        ]);
+    }
+
     // Create course (Lecturer/Admin only)
     public function store(Request $request)
     {
@@ -44,7 +69,10 @@ class CourseController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
         }
 
         $course = Course::create([
@@ -77,7 +105,10 @@ class CourseController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
         }
 
         $course->update($request->only(['code', 'title', 'description', 'credits', 'schedule', 'room', 'status']));
@@ -101,7 +132,7 @@ class CourseController extends Controller
         ]);
     }
 
-    // Get courses by lecturer
+    // Get courses by specific lecturer ID
     public function getByLecturer($id)
     {
         $courses = Course::where('lecturer_id', $id)->get();
@@ -111,7 +142,7 @@ class CourseController extends Controller
         ]);
     }
 
-    // Get enrolled courses for student
+    // Get enrolled courses for student by ID
     public function getEnrolledCourses($id)
     {
         $user = User::findOrFail($id);
@@ -140,6 +171,30 @@ class CourseController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Enrolled successfully'
+        ]);
+    }
+
+    // Get students in a course
+    public function students($id)
+    {
+        $course = Course::findOrFail($id);
+        $students = $course->students()->get();
+        
+        return response()->json([
+            'success' => true,
+            'data' => $students
+        ]);
+    }
+
+    // Get assignments for a course
+    public function assignments($id)
+    {
+        $course = Course::findOrFail($id);
+        $assignments = $course->assignments()->with('lecturer')->get();
+        
+        return response()->json([
+            'success' => true,
+            'data' => $assignments
         ]);
     }
 }

@@ -2,27 +2,15 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Course extends Model
 {
-    use HasFactory;
-
     protected $fillable = [
-        'code',
-        'title',
-        'description',
-        'credits',
-        'lecturer_id',
-        'schedule',
-        'room',
-        'status',
-        'image',
-        'progress'
+        'code', 'title', 'description', 'credits', 
+        'lecturer_id', 'schedule', 'room', 'status'
     ];
 
-    // Relationships
     public function lecturer()
     {
         return $this->belongsTo(User::class, 'lecturer_id');
@@ -38,20 +26,5 @@ class Course extends Model
     public function assignments()
     {
         return $this->hasMany(Assignment::class);
-    }
-
-    public function announcements()
-    {
-        return $this->hasMany(Announcement::class);
-    }
-
-    public function attendances()
-    {
-        return $this->hasMany(Attendance::class);
-    }
-
-    public function groups()
-    {
-        return $this->hasMany(Group::class);
     }
 }
