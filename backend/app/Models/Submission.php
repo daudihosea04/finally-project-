@@ -10,21 +10,17 @@ class Submission extends Model
     use HasFactory;
 
     protected $fillable = [
-        'assignment_id',
-        'student_id',
-        'content',
-        'file_path',
-        'submitted_at',
-        'grade',
-        'feedback',
-        'status',
+        'assignment_id', 'student_id', 'content', 'file_path',
+        'submitted_at', 'status', 'grade', 'feedback'
     ];
 
     protected $casts = [
         'submitted_at' => 'datetime',
+        'grade' => 'integer',
     ];
 
-    // Relationships
+    // ==================== RELATIONSHIPS ====================
+    
     public function assignment()
     {
         return $this->belongsTo(Assignment::class);
@@ -35,9 +31,15 @@ class Submission extends Model
         return $this->belongsTo(User::class, 'student_id');
     }
 
-    // Check if submission is late
+    // ==================== HELPER METHODS ====================
+    
+    public function isGraded()
+    {
+        return !is_null($this->grade);
+    }
+
     public function isLate()
     {
-        return $this->submitted_at->gt($this->assignment->due_date);
+        return $this->assignment && $this->submitted_at > $this->assignment->due_date;
     }
 }

@@ -1,0 +1,32 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('events', function (Blueprint $table) {
+            $table->id();
+            $table->string('title');
+            $table->text('description')->nullable();
+            $table->timestamp('event_date');
+            $table->timestamp('end_date')->nullable();
+            $table->string('color')->nullable();
+            $table->boolean('all_day')->default(true);
+            $table->unsignedBigInteger('created_by');
+            $table->boolean('is_public')->default(false);
+            $table->timestamps();
+            
+            $table->foreign('created_by')->references('id')->on('users')->onDelete('cascade');
+            $table->index('event_date');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('events');
+    }
+};

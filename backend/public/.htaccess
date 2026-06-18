@@ -1,25 +1,533 @@
-<IfModule mod_rewrite.c>
-    <IfModule mod_negotiation.c>
-        Options -MultiViews -Indexes
-    </IfModule>
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
+import api from '../services/api';
+import { Send, Paperclip, X, File, Image, RefreshCw, Users, MessageCircle, Lock, Phone, Video, MoreVertical } from 'lucide-react';
 
-    RewriteEngine On
+const ChatComponent = ({ chatUserId, chatUserName, onClose }) => {
+  const { user } = useAuth();
+  const themeContext = useTheme();
+  
+  const safeColors = themeContext?.colors || {
+    background: '#f9fafb',
+    border: '#e5e7eb',
+    textPrimary: '#111827',
+    textSecondary: '#6b7280',
+    textSubtle: '#9ca3af',
+    primary: '#3b82f6',
+    secondary: '#10b981',
+    error: '#ef4444'
+  };
+  
+  const colors = safeColors;
+  
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [participant, setParticipant] = useState(null);
+  const [isTyping, setIsTyping] = useState(false);
+  const [otherUserTyping, setOtherUserTyping] = useState(false);
+  const typingTimeoutRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const messagesEndRef = useRef(null);
+  const pollingInterval = useRef(null);
+  
+  const scrollToBottom = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, []);
+  
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, scrollToBottom]);
 
-    # Handle Authorization Header
-    RewriteCond %{HTTP:Authorization} .
-    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+  // ==================== LOAD PARTICIPANT INFO ====================
+  const loadParticipant = useCallback(async () => {
+    if (!chatUserId) return;
+    
+    try {
+      // Get participant info - CORRECTED ENDPOINT
+      const response = await api.get(`/chat/private/${chatUserId}/participant`);
+      
+      if (response.data && response.data.success) {
+        setParticipant(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error loading participant:', error);
+      // Fallback: use passed name
+      setParticipant({ id: chatUserId, name: chatUserName || 'User' });
+    }
+  }, [chatUserId, chatUserName]);
 
-    # Handle X-XSRF-Token Header
-    RewriteCond %{HTTP:x-xsrf-token} .
-    RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
+  // ==================== LOAD MESSAGES ====================
+  const loadMessages = useCallback(async () => {
+    if (!chatUserId) return;
+    
+    console.log('Loading private messages for user:', chatUserId);
+    setLoading(true);
+    
+    try {
+      // CORRECTED ENDPOINT for private messages
+      const response = await api.get(`/chat/private/${chatUserId}/messages`);
+      
+      console.log('Messages response:', response.data);
+      
+      if (response.data && response.data.success) {
+        let newMessages = [];
+        
+        if (response.data.data && Array.isArray(response.data.data)) {
+          newMessages = response.data.data;
+        } else if (response.data.data?.messages) {
+          newMessages = response.data.data.messages;
+        } else if (Array.isArray(response.data.messages)) {
+          newMessages = response.data.messages;
+        } else if (Array.isArray(response.data)) {
+          newMessages = response.data;
+        }
+        
+        console.log('Loaded messages count:', newMessages.length);
+        setMessages(newMessages);
+        scrollToBottom();
+      }
+    } catch (error) {
+      console.error('Error loading messages:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [chatUserId, scrollToBottom]);
+  
+  // ==================== SEND MESSAGE ====================
+  const sendMessage = async () => {
+    if (!newMessage.trim() && !selectedFile) {
+      alert('Please enter a message');
+      return;
+    }
+    if (!chatUserId) {
+      alert('No user selected');
+      return;
+    }
+    
+    setSending(true);
+    
+    try {
+      const messageText = newMessage.trim() || (selectedFile ? 'Sent a file' : '');
+      
+      console.log('=== SENDING PRIVATE MESSAGE ===');
+      console.log('Recipient ID:', chatUserId);
+      console.log('Message:', messageText);
+      
+      // CORRECTED ENDPOINT for sending private messages
+      const payload = {
+        recipient_id: parseInt(chatUserId),
+        message: messageText,
+        sender_id: user?.id,
+        sender_name: user?.name
+      };
+      
+      console.log('Private payload:', payload);
+      
+      let response;
+      
+      if (selectedFile) {
+        const formData = new FormData();
+        formData.append('recipient_id', parseInt(chatUserId));
+        formData.append('message', messageText);
+        formData.append('file', selectedFile);
+        response = await api.post('/chat/private/send', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+      } else {
+        response = await api.post('/chat/private/send', payload);
+      }
+      
+      console.log('Server response:', response.data);
+      
+      if (response.data && response.data.success) {
+        setNewMessage('');
+        setSelectedFile(null);
+        // Clear typing indicator
+        if (typingTimeoutRef.current) {
+          clearTimeout(typingTimeoutRef.current);
+        }
+        setIsTyping(false);
+        await loadMessages();
+        scrollToBottom();
+      } else {
+        throw new Error(response.data?.message || 'Failed to send message');
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+      
+      let errorMsg = 'Failed to send message. ';
+      
+      if (error.response?.status === 422) {
+        const errors = error.response.data?.errors;
+        if (errors) {
+          if (typeof errors === 'object') {
+            const errorList = [];
+            for (const key in errors) {
+              errorList.push(`${key}: ${errors[key].join(', ')}`);
+            }
+            errorMsg += errorList.join('; ');
+          } else {
+            errorMsg += errors;
+          }
+        } else if (error.response.data?.message) {
+          errorMsg = error.response.data.message;
+        } else {
+          errorMsg += 'Please check: message text and recipient ID';
+        }
+      } else if (error.response?.status === 401) {
+        errorMsg = 'Session expired. Please refresh the page.';
+      } else if (error.response?.status === 403) {
+        errorMsg = 'You do not have permission to send messages to this user.';
+      } else if (error.response?.data?.message) {
+        errorMsg = error.response.data.message;
+      } else {
+        errorMsg += error.message || 'Please try again.';
+      }
+      
+      alert(`Error: ${errorMsg}`);
+    } finally {
+      setSending(false);
+    }
+  };
+  
+  // ==================== SEND TYPING INDICATOR ====================
+  const handleTyping = (e) => {
+    setNewMessage(e.target.value);
+    
+    if (!isTyping) {
+      setIsTyping(true);
+      // Send typing indicator to backend
+      api.post(`/chat/private/${chatUserId}/typing`, { is_typing: true }).catch(() => {});
+    }
+    
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    
+    typingTimeoutRef.current = setTimeout(() => {
+      setIsTyping(false);
+      api.post(`/chat/private/${chatUserId}/typing`, { is_typing: false }).catch(() => {});
+    }, 1000);
+  };
+  
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/zip'];
+    
+    if (file && file.size <= 10 * 1024 * 1024) {
+      if (allowedTypes.includes(file.type) || file.type.startsWith('image/')) {
+        setSelectedFile(file);
+      } else {
+        alert('File type not supported. Allowed: Images, PDF, DOC, DOCX, ZIP');
+      }
+    } else {
+      alert('File too large. Max 10MB');
+    }
+  };
+  
+  const formatTime = (timestamp) => {
+    if (!timestamp) return '';
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+  
+  const formatDate = (timestamp) => {
+    if (!timestamp) return '';
+    const date = new Date(timestamp);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    if (date.toDateString() === today.toDateString()) {
+      return 'Today';
+    } else if (date.toDateString() === yesterday.toDateString()) {
+      return 'Yesterday';
+    } else {
+      return date.toLocaleDateString();
+    }
+  };
+  
+  const groupMessagesByDate = () => {
+    const groups = {};
+    messages.forEach(msg => {
+      const date = formatDate(msg.created_at);
+      if (!groups[date]) groups[date] = [];
+      groups[date].push(msg);
+    });
+    return groups;
+  };
+  
+  const isOwnMessage = (msg) => {
+    return msg.sender_id === user?.id;
+  };
+  
+  const getSenderName = (msg) => {
+    if (isOwnMessage(msg)) return 'You';
+    return participant?.name || chatUserName || 'User';
+  };
+  
+  // ==================== INITIALIZATION ====================
+  useEffect(() => {
+    if (chatUserId) {
+      loadParticipant();
+      loadMessages();
+    }
+  }, [chatUserId, loadParticipant, loadMessages]);
+  
+  // Polling for real-time messages (every 3 seconds)
+  useEffect(() => {
+    if (!chatUserId) return;
+    
+    if (pollingInterval.current) clearInterval(pollingInterval.current);
+    
+    pollingInterval.current = setInterval(() => {
+      loadMessages();
+    }, 3000);
+    
+    return () => {
+      if (pollingInterval.current) clearInterval(pollingInterval.current);
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    };
+  }, [chatUserId, loadMessages]);
+  
+  const messageGroups = groupMessagesByDate();
+  const displayName = participant?.name || chatUserName || 'User';
+  
+  return (
+    <div className="flex flex-col h-full" style={{ backgroundColor: colors.background }}>
+      {/* Header */}
+      <div className="p-4 border-b flex justify-between items-center" style={{ borderColor: colors.border }}>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: `${colors.primary}20` }}>
+            <Users size={20} style={{ color: colors.primary }} />
+          </div>
+          <div>
+            <h3 className="font-bold" style={{ color: colors.textPrimary }}>{displayName}</h3>
+            <div className="flex items-center gap-2 mt-0.5">
+              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              <span className="text-xs" style={{ color: colors.textSecondary }}>
+                Private Chat • {messages.length} messages
+              </span>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={loadMessages} 
+            className="p-2 rounded-full hover:bg-opacity-10 transition-all"
+            style={{ backgroundColor: `${colors.primary}10` }}
+            title="Refresh"
+          >
+            <RefreshCw size={16} style={{ color: colors.primary }} />
+          </button>
+          {onClose && (
+            <button 
+              onClick={onClose}
+              className="p-2 rounded-full hover:bg-opacity-10 transition-all"
+              style={{ backgroundColor: `${colors.error}10` }}
+              title="Close"
+            >
+              <X size={18} style={{ color: colors.error }} />
+            </button>
+          )}
+        </div>
+      </div>
+      
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {loading && messages.length === 0 && (
+          <div className="flex justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: colors.primary }} />
+          </div>
+        )}
+        
+        {!loading && messages.length === 0 && (
+          <div className="text-center py-12">
+            <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3" style={{ backgroundColor: `${colors.primary}10` }}>
+              <MessageCircle size={32} style={{ color: colors.primary }} />
+            </div>
+            <p className="text-sm" style={{ color: colors.textSecondary }}>No messages yet. Start the conversation!</p>
+            <p className="text-xs mt-1" style={{ color: colors.textSubtle }}>Messages are private and encrypted</p>
+          </div>
+        )}
+        
+        {Object.entries(messageGroups).map(([date, msgs]) => (
+          <div key={date}>
+            <div className="flex justify-center my-3">
+              <span className="text-xs px-3 py-1 rounded-full" style={{ backgroundColor: `${colors.primary}10`, color: colors.textSecondary }}>
+                {date}
+              </span>
+            </div>
+            {msgs.map((msg) => {
+              const ownMessage = isOwnMessage(msg);
+              const senderName = getSenderName(msg);
+              const messageText = msg.message || '';
+              
+              return (
+                <div
+                  key={msg.id}
+                  className={`flex mb-3 animate-slide-in ${ownMessage ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div
+                    className={`max-w-[75%] rounded-2xl p-3 ${
+                      ownMessage ? 'rounded-br-md' : 'rounded-bl-md'
+                    }`}
+                    style={{
+                      backgroundColor: ownMessage ? colors.primary : `${colors.primary}10`,
+                      color: ownMessage ? '#ffffff' : colors.textPrimary
+                    }}
+                  >
+                    {!ownMessage && (
+                      <p className="text-xs font-medium mb-1" style={{ color: colors.primary }}>
+                        {senderName}
+                      </p>
+                    )}
+                    <p className="text-sm break-words whitespace-pre-wrap">{messageText}</p>
+                    {msg.file_url && (
+                      <div className="mt-2">
+                        {msg.file_type?.startsWith('image/') ? (
+                          <img 
+                            src={msg.file_url} 
+                            alt="Attachment" 
+                            className="max-w-full rounded-lg max-h-48 cursor-pointer"
+                            onClick={() => window.open(msg.file_url, '_blank')}
+                          />
+                        ) : (
+                          <a 
+                            href={msg.file_url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-xs flex items-center gap-1 underline"
+                            style={{ color: ownMessage ? '#ffffff' : colors.primary }}
+                          >
+                            <File size={12} /> {msg.file_name || 'Download file'}
+                          </a>
+                        )}
+                      </div>
+                    )}
+                    <p className="text-xs mt-1 opacity-70 text-right">{formatTime(msg.created_at)}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ))}
+        
+        {/* Typing indicator */}
+        {otherUserTyping && (
+          <div className="flex justify-start mb-3">
+            <div className="rounded-2xl p-2 px-3" style={{ backgroundColor: `${colors.primary}10` }}>
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                <span className="text-xs ml-1" style={{ color: colors.textSecondary }}>{displayName} is typing...</span>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        <div ref={messagesEndRef} />
+      </div>
+      
+      {/* File Preview */}
+      {selectedFile && (
+        <div className="mx-4 mb-2 p-3 rounded-xl flex items-center justify-between" style={{ backgroundColor: `${colors.primary}10` }}>
+          <div className="flex items-center gap-3">
+            {selectedFile.type.startsWith('image/') ? (
+              <img src={URL.createObjectURL(selectedFile)} alt="Preview" className="w-10 h-10 rounded object-cover" />
+            ) : (
+              <div className="w-10 h-10 rounded flex items-center justify-center" style={{ backgroundColor: `${colors.primary}20` }}>
+                <File size={20} style={{ color: colors.primary }} />
+              </div>
+            )}
+            <div>
+              <p className="text-sm font-medium truncate max-w-[200px]" style={{ color: colors.textPrimary }}>{selectedFile.name}</p>
+              <p className="text-xs" style={{ color: colors.textSecondary }}>{(selectedFile.size / 1024).toFixed(1)} KB</p>
+            </div>
+          </div>
+          <button 
+            onClick={() => setSelectedFile(null)}
+            className="p-1 rounded-full hover:bg-opacity-10 transition-all"
+            style={{ backgroundColor: `${colors.error}10` }}
+          >
+            <X size={16} style={{ color: colors.error }} />
+          </button>
+        </div>
+      )}
+      
+      {/* Input */}
+      <div className="p-4 border-t" style={{ borderColor: colors.border }}>
+        <div className="flex items-end gap-2">
+          <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileSelect} accept="image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/zip" />
+          <button 
+            className="p-2.5 rounded-xl hover:bg-opacity-10 transition-all flex-shrink-0"
+            style={{ backgroundColor: `${colors.primary}10` }}
+            onClick={() => fileInputRef.current?.click()}
+            title="Attach file"
+          >
+            <Paperclip size={18} style={{ color: colors.textSecondary }} />
+          </button>
+          <div className="flex-1 relative">
+            <textarea
+              value={newMessage}
+              onChange={handleTyping}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey && !sending) {
+                  e.preventDefault();
+                  sendMessage();
+                }
+              }}
+              placeholder={`Type a message to ${displayName}...`}
+              rows={1}
+              className="w-full px-4 py-2.5 rounded-xl border focus:outline-none focus:ring-2 resize-none"
+              style={{
+                backgroundColor: colors.background,
+                borderColor: colors.border,
+                color: colors.textPrimary,
+                outline: 'none'
+              }}
+              disabled={sending}
+              autoFocus
+            />
+          </div>
+          <button
+            onClick={sendMessage}
+            disabled={(!newMessage.trim() && !selectedFile) || sending}
+            className="p-2.5 rounded-xl transition-all flex items-center justify-center flex-shrink-0"
+            style={{
+              backgroundColor: colors.primary,
+              opacity: (!newMessage.trim() && !selectedFile) || sending ? 0.5 : 1,
+              cursor: (!newMessage.trim() && !selectedFile) || sending ? 'not-allowed' : 'pointer'
+            }}
+            title="Send message"
+          >
+            {sending ? (
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
+            ) : (
+              <Send size={18} color="#ffffff" />
+            )}
+          </button>
+        </div>
+        <div className="flex justify-between mt-2 px-1">
+          <div className="flex items-center gap-2">
+            <span className="text-xs" style={{ color: colors.textSubtle }}>
+              🔒 Encrypted
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs" style={{ color: colors.textSubtle }}>
+              Press Enter to send
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
-    # Redirect Trailing Slashes If Not A Folder...
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteCond %{REQUEST_URI} (.+)/$
-    RewriteRule ^ %1 [L,R=301]
-
-    # Send Requests To Front Controller...
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteRule ^ index.php [L]
-</IfModule>
+export default ChatComponent;

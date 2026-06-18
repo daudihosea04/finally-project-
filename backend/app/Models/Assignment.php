@@ -10,26 +10,25 @@ class Assignment extends Model
     use HasFactory;
 
     protected $fillable = [
-        'title',
-        'description',
-        'course_id',
-        'created_by',
-        'due_date',
-        'due_time',
-        'total_points',
-        'attachment',
-        'status',
+        'title', 'description', 'course_id', 'lecturer_id', 'created_by',
+        'due_date', 'due_time', 'total_points', 'status', 'attachment'
     ];
 
     protected $casts = [
         'due_date' => 'date',
-        'due_time' => 'datetime',
+        'total_points' => 'integer',
     ];
 
-    // Relationships
+    // ==================== RELATIONSHIPS ====================
+    
     public function course()
     {
         return $this->belongsTo(Course::class);
+    }
+
+    public function lecturer()
+    {
+        return $this->belongsTo(User::class, 'lecturer_id');
     }
 
     public function creator()
@@ -42,14 +41,21 @@ class Assignment extends Model
         return $this->hasMany(Submission::class);
     }
 
-    public function grades()
+    // ==================== HELPER METHODS ====================
+    
+    public function isOverdue()
     {
-        return $this->hasMany(Grade::class);
+        if (!$this->due_date) return false;
+        return now()->gt($this->due_date);
     }
 
-    // Check if assignment is past due
-    public function isPastDue()
+    public function getSubmissionCount()
     {
-        return now()->gt($this->due_date);
+        return $this->submissions()->count();
+    }
+
+    public function getAverageGrade()
+    {
+        return $this->submissions()->avg('grade') ?? 0;
     }
 }

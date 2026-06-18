@@ -7,13 +7,13 @@ use Illuminate\Support\Facades\Schema;
 
 class AppServiceProvider extends ServiceProvider
 {
-    public function register(): void
-    {
-        //
-    }
-
-    public function boot(): void
+    public function boot()
     {
         Schema::defaultStringLength(191);
+    }
+
+    public function register()
+    {
+        //
     }
 }

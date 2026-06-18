@@ -1,24 +1,13 @@
 <?php
 
-namespace App\Broadcasting;
-
 use App\Models\User;
 
-class chat
-{
-    /**
-     * Create a new channel instance.
-     */
-    public function __construct()
-    {
-        //
-    }
+// Channel for private chat between two users
+Broadcast::channel('chat.{userId}', function ($user, $userId) {
+    return (int) $user->id === (int) $userId;
+});
 
-    /**
-     * Authenticate the user's access to the channel.
-     */
-    public function join(User $user): array|bool
-    {
-        //
-    }
-}
+// Channel for group chat
+Broadcast::channel('group.{groupId}', function ($user, $groupId) {
+    return $user->groups()->where('group_id', $groupId)->exists();
+});

@@ -1,3 +1,4 @@
+// src/App.jsx
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
@@ -18,6 +19,7 @@ import Contact from './pages/contact/Contact';
 import Faq from './pages/faq/Faq';
 import PrivacyPolicy from './pages/legal/PrivacyPolicy';
 import Terms from './pages/legal/Terms';
+import JoinGroup from './pages/JoinGroup';
 
 // Dashboard Pages
 import StudentDashboard from './pages/student/StudentDashboard';
@@ -32,6 +34,7 @@ import Footer from './components/layouts/Footer';
 // Role-Based Dashboard Redirect Component
 const RoleBasedDashboard = () => {
   const { user } = useAuth();
+  console.log('🔄 RoleBasedDashboard - user:', user);
   
   if (user?.role === 'admin') {
     return <Navigate to="/admin/dashboard" replace />;
@@ -43,6 +46,8 @@ const RoleBasedDashboard = () => {
 };
 
 function App() {
+  console.log('🚀 App component rendering');
+  
   return (
     <ThemeProvider>
       <AuthProvider>
@@ -67,6 +72,7 @@ function App() {
                 <Route path="/faq" element={<Faq />} />
                 <Route path="/privacy" element={<PrivacyPolicy />} />
                 <Route path="/terms" element={<Terms />} />
+                <Route path="/join-group/:code" element={<JoinGroup />} />
 
                 {/* ========== ADMIN ROUTES ========== */}
                 <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />

@@ -1,24 +1,22 @@
-import { defineConfig } from 'vite';
-import laravel from 'laravel-vite-plugin';
-import { bunny } from 'laravel-vite-plugin/fonts';
-import tailwindcss from '@tailwindcss/vite';
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
 
 export default defineConfig({
-    plugins: [
-        laravel({
-            input: ['resources/css/app.css', 'resources/js/app.js'],
-            refresh: true,
-            fonts: [
-                bunny('Instrument Sans', {
-                    weights: [400, 500, 600],
-                }),
-            ],
-        }),
-        tailwindcss(),
-    ],
-    server: {
-        watch: {
-            ignored: ['**/storage/framework/views/**'],
-        },
-    },
-});
+  plugins: [react()],
+  server: {
+    port: 3001,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8001',  // Badilisha hapa
+        changeOrigin: true,
+        secure: false,
+      },
+      '/broadcasting': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        secure: false,
+        ws: true
+      }
+    }
+  }
+})

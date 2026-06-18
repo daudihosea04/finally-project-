@@ -1,0 +1,538 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Your custom styles below */
+/* Slide in animation for new messages */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+
+/* Pulse animation for live indicator */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Add to your global CSS file */
+.sidebar-container {
+  box-shadow: none !important;
+  border-right: none !important;
+}
+
+.main-header {
+  box-shadow: none !important;
+  border-bottom: none !important;
+}
+
+/* Fanya container kuwa seamless */
+.dashboard-layout {
+  background-color: inherit;
+}
+
+/* Ondoa mapengo yoyote */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* ==================== GLOBAL STYLES ==================== */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* ==================== SCROLLBAR STYLES ==================== */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* ==================== ANIMATIONS ==================== */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes scan {
+  0% {
+    top: 0;
+  }
+  100% {
+    top: 100%;
+  }
+}
+
+/* ==================== UTILITY CLASSES ==================== */
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-slide-in-left {
+  animation: slideInLeft 0.3s ease-out;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.3s ease-out;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+.animate-scan {
+  animation: scan 2s linear infinite;
+}
+
+.hover-scale-102 {
+  transition: transform 0.2s ease;
+}
+
+.hover-scale-102:hover {
+  transform: scale(1.02);
+}
+
+.hover-scale-105 {
+  transition: transform 0.2s ease;
+}
+
+.hover-scale-105:hover {
+  transform: scale(1.05);
+}
+
+/* ==================== GLASS CARD EFFECT ==================== */
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  transition: all 0.3s ease;
+}
+
+.glass-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* Dark mode glass card */
+.dark .glass-card {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* ==================== CHAT STYLES ==================== */
+
+.chat-message {
+  transition: all 0.2s ease;
+}
+
+.chat-message-own {
+  background: linear-gradient(135deg, #00E5FF 0%, #00B8D4 100%);
+  color: #000;
+}
+
+.chat-message-other {
+  background: rgba(0, 229, 255, 0.1);
+}
+
+/* ==================== TABLE STYLES ==================== */
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th {
+  text-align: left;
+  padding: 12px 16px;
+  font-weight: 600;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.data-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.data-table tr:hover {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+/* ==================== STATS CARD STYLES ==================== */
+
+.stats-card {
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.stats-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+}
+
+/* ==================== MODAL STYLES ==================== */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  animation: fadeIn 0.2s ease;
+}
+
+.modal-content {
+  background: #ffffff;
+  border-radius: 16px;
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: slideInLeft 0.3s ease;
+}
+
+/* Dark mode modal */
+.dark .modal-content {
+  background: #1a1a2e;
+}
+
+/* ==================== FORM STYLES ==================== */
+
+.form-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+  background: transparent;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #00E5FF;
+  box-shadow: 0 0 0 3px rgba(0, 229, 255, 0.1);
+}
+
+.form-label {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 6px;
+  display: block;
+}
+
+/* ==================== BUTTON STYLES ==================== */
+
+.btn-primary {
+  background: #00E5FF;
+  color: #000;
+  padding: 10px 20px;
+  border-radius: 12px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: none;
+}
+
+.btn-primary:hover {
+  transform: scale(1.02);
+  background: #00B8D4;
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: rgba(0, 229, 255, 0.1);
+  color: #00E5FF;
+  padding: 8px 16px;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: none;
+}
+
+.btn-secondary:hover {
+  background: rgba(0, 229, 255, 0.2);
+}
+
+.btn-danger {
+  background: rgba(255, 68, 68, 0.1);
+  color: #FF4444;
+  padding: 8px 16px;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: none;
+}
+
+.btn-danger:hover {
+  background: rgba(255, 68, 68, 0.2);
+}
+
+/* ==================== RESPONSIVE STYLES ==================== */
+
+@media (max-width: 768px) {
+  .hide-on-mobile {
+    display: none;
+  }
+
+  .sidebar-collapsed {
+    width: 80px;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .main-content {
+    padding: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hide-on-small {
+    display: none;
+  }
+}
+
+/* ==================== FILE UPLOAD STYLES ==================== */
+
+.dropzone {
+  border: 2px dashed #e2e8f0;
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dropzone:hover {
+  border-color: #00E5FF;
+  background: rgba(0, 229, 255, 0.05);
+}
+
+.dropzone-active {
+  border-color: #00E5FF;
+  background: rgba(0, 229, 255, 0.1);
+}
+
+/* ==================== PROGRESS BAR ==================== */
+
+.progress-bar {
+  width: 100%;
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: #00E5FF;
+  border-radius: 9999px;
+  transition: width 0.3s ease;
+}
+
+/* ==================== BADGE STYLES ==================== */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.badge-success {
+  background: rgba(50, 205, 50, 0.2);
+  color: #32CD32;
+}
+
+.badge-warning {
+  background: rgba(255, 215, 0, 0.2);
+  color: #FFD700;
+}
+
+.badge-error {
+  background: rgba(255, 68, 68, 0.2);
+  color: #FF4444;
+}
+
+.badge-info {
+  background: rgba(0, 229, 255, 0.2);
+  color: #00E5FF;
+}
+
+/* ==================== SIDEBAR STYLES ==================== */
+
+.sidebar {
+  transition: width 0.3s ease;
+  overflow-x: hidden;
+}
+
+.sidebar-item {
+  transition: all 0.2s ease;
+}
+
+.sidebar-item:hover {
+  background: rgba(0, 229, 255, 0.1);
+}
+
+.sidebar-item-active {
+  background: rgba(0, 229, 255, 0.15);
+  border-left: 3px solid #00E5FF;
+}
+
+/* ==================== LOADING STATES ==================== */
+
+.loading-skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* ==================== QR CODE STYLES ==================== */
+
+.qr-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 16px;
+  background: white;
+  border-radius: 16px;
+}
+
+.qr-scanner-frame {
+  position: relative;
+  width: 256px;
+  height: 256px;
+  border: 2px solid #00E5FF;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+:root {
+  --primary-color: #FFD700;
+  --secondary-color: #00E5FF;
+  --bg-primary: #0f0f1a;
+  --bg-secondary: #1a1a2e;
+  --text-primary: #ffffff;
+  --text-secondary: #a0a0a0;
+  --text-subtle: #6b6b6b;
+  --border-color: rgba(255, 255, 255, 0.1);
+  --error-color: #ff4444;
+  --success-color: #32cd32;
+  --warning-color: #ffd700;
+}
+
+[data-theme="dark"] {
+  --bg-primary: #0f0f1a;
+  --bg-secondary: #1a1a2e;
+  --text-primary: #ffffff;
+  --text-secondary: #a0a0a0;
+  --text-subtle: #6b6b6b;
+  --border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="light"] {
+  --bg-primary: #f5f5f5;
+  --bg-secondary: #ffffff;
+  --text-primary: #1a1a2e;
+  --text-secondary: #4a4a4a;
+  --text-subtle: #888888;
+  --border-color: rgba(0, 0, 0, 0.1);
+}
